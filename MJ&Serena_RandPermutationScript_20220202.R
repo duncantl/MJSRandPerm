@@ -180,7 +180,7 @@ for (i in 1:rpIter) {
     
 #  names(LMEMis_output_RP_oneIter)[1:2] <- c('age', 'estimate') # Update column names
   
-  LMEMis_output_RP_oneIter$iteration <- i
+#  LMEMis_output_RP_oneIter$iteration <- i
     # LMEMis_output_RP_allIter <- bind_rows(LMEMis_output_RP_allIter, LMEMis_output_RP_oneIter)
   LMEMis_output_RP_allIter[[i]] <- LMEMis_output_RP_oneIter
 }
@@ -189,6 +189,9 @@ for (i in 1:rpIter) {
 # Combine results.
 LMEMis_output_RP_allIter2 = do.call(rbind, LMEMis_output_RP_allIter)
 names(LMEMis_output_RP_allIter2)[1:2] = c('age', 'estimate')
+
+LMEMis_output_RP_allIter2$iteration = rep(1:rpIter, sapply(LMEMis_output_RP_allIter, nrow))
+
 
 
 LMEMis_output_RP_allIter2$inCL.vec = NA
