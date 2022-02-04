@@ -107,13 +107,19 @@ induceMissingTrials <- function(dfOriginal, caseDeletionPct) {
 #   Rows with missing trials have a meanAmpNC value of NA.
 # - Output:
 # - dfMissing_pairedWide: A wide dataframe with trials paired randomly. Missing trial pairings are designated with NA
-pairTrials_RandomPerm <- function(dfMissing) {
-  dfMissing_NoNA <- dfMissing[complete.cases(dfMissing), ] # Remove all NA rows (otherwise function will say that you've matched all pairs)
-  
+
+
+# 2nd parameter Remove all NA rows (otherwise function will say that you've matched all pairs)
+pairTrials_RandomPerm <-
+function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ])
+{
+    
+  uids = unique(dfMissing_NoNA$SUBJECTID)
   # Initialize variable for storing paired data
-  dfMissing_pairedWide <- NULL
-  
-  for (subject in unique(dfMissing_NoNA$SUBJECTID)) { 
+  dfMissing_pairedWide <- vector("list", length(uids))
+
+  ctr = 1L
+  for (subject in uids) { 
     # Subset dfMissing_NoNA dataframe by subject
     dfMissing_NoNA_SubjectSubset <- dfMissing_NoNA[dfMissing_NoNA$SUBJECTID == subject,]
     
@@ -123,27 +129,34 @@ pairTrials_RandomPerm <- function(dfMissing) {
 
         # We sample both conditions A and B randomly so we get a random selection of actor/presentation number for both conditions
     # Otherwise, selecting 1:n may result in always pairing Actor 1/Trial 1 of Emotion A with a random trial from Emotion B
-    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_A] <- sample(1:sum(emotionRows_A))
-    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_B] <- sample(1:sum(emotionRows_B))
+    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_A] <- sample(sum(emotionRows_A))
+    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_B] <- sample(sum(emotionRows_B))
     
     # Convert dataframe with paired trials from long to wide
-    dfMissing_pairedWide_SubjectSubset <- dfMissing_NoNA_SubjectSubset %>% 
-      pivot_wider(names_from = emotion, names_sep = ".", values_from = c(meanAmpNC, ACTOR, presentNumber, presentNumberWeight))
-    
+    dfMissing_pairedWide_SubjectSubset <- pivot_wider(dfMissing_NoNA_SubjectSubset, names_from = emotion, names_sep = ".", values_from = c(meanAmpNC, ACTOR, presentNumber, presentNumberWeight))
+      
+#browser()
+      
     # If this subset does not have trials from both emotion conditions
-    if (!("meanAmpNC.B" %in% colnames(dfMissing_pairedWide_SubjectSubset) & "meanAmpNC.A" %in% colnames(dfMissing_pairedWide_SubjectSubset))) { 
+    if (!("meanAmpNC.B" %in% colnames(dfMissing_pairedWide_SubjectSubset) && "meanAmpNC.A" %in% colnames(dfMissing_pairedWide_SubjectSubset))) { 
       next
     }
     
-    # Calculate difference in amplitude between trial pairs
-    dfMissing_pairedWide_SubjectSubset$meanAmpNC_BMinusA <- dfMissing_pairedWide_SubjectSubset$meanAmpNC.B - dfMissing_pairedWide_SubjectSubset$meanAmpNC.A
-    
-    # Remove all rows with NA
-    dfMissing_pairedWide_SubjectSubset_NoNA <- dfMissing_pairedWide_SubjectSubset[complete.cases(dfMissing_pairedWide_SubjectSubset), ] # Remove all NA rows (otherwise function will say that you've matched all pairs)
     
     # Store this subject's paired trial dataframe in dfMissing_pairedWide
-    dfMissing_pairedWide <- bind_rows(dfMissing_pairedWide, dfMissing_pairedWide_SubjectSubset_NoNA)
+      #dfMissing_pairedWide <- bind_rows(dfMissing_pairedWide, dfMissing_pairedWide_SubjectSubset_NoNA)
+    dfMissing_pairedWide[[ctr]] <- dfMissing_pairedWide_SubjectSubset
+    ctr <- ctr + 1L
   }
+  
+#browser()
+  dfMissing_pairedWide = do.call(rbind, dfMissing_pairedWide)
+
+  # Remove all rows with NA
+  dfMissing_pairedWide <- dfMissing_pairedWide[complete.cases(dfMissing_pairedWide), ] # Remove all NA rows (otherwise function will say that you've matched all pairs)
+  
+  # Calculate difference in amplitude between trial pairs  
+  dfMissing_pairedWide$meanAmpNC_BMinusA <- dfMissing_pairedWide$meanAmpNC.B - dfMissing_pairedWide$meanAmpNC.A
   
   # Calculate average presentation number for each trial pair
   dfMissing_pairedWide$presentNumberAvg <- (dfMissing_pairedWide$presentNumber.A+dfMissing_pairedWide$presentNumber.B)/2

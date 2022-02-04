@@ -64,7 +64,7 @@ library(ggplot2) # V.3.3.2; used for plotting
 # 2. LOAD SIMULATED DATA FILE
 
 # Specify filepath of simulated data file
-filename <- 'T:/Projects/InProgress/LME_DifferenceWaves&LatencyERP/Data/01_SEREEGASimulation/MatlabAndRCode/00_SampleCodeForTestingDifferenceWavePairing/Sample0751-NCMeanAmpOutput.csv'
+#filename <- 'T:/Projects/InProgress/LME_DifferenceWaves&LatencyERP/Data/01_SEREEGASimulation/MatlabAndRCode/00_SampleCodeForTestingDifferenceWavePairing/Sample0751-NCMeanAmpOutput.csv'
 
 filename = "Sample0751-NCMeanAmpOutput.csv"
 
@@ -138,8 +138,7 @@ caseDeletionPct <-  11
 
 # Use induceMissingTrials function to remove trials based on specified missingness
 # (step 5) and caseDeletionPct variable
-list[dfMissing, subjectCaseDeletion, trialCount] <- induceMissingTrials(dfOriginal,
-                                                                        caseDeletionPct) 
+dfMissing <- induceMissingTrials(dfOriginal, caseDeletionPct) [[1]]
 
 #------------------------------------------------------------------------
 # 7. PAIR TRIALS AND FIT LME MODEL WITH TRIAL-LEVEL DATASET AFTER INDUCING TRIAL MISSINGNESS
@@ -158,12 +157,15 @@ ageArray <- c(-1.998, 0) # Array needed for extracting emmeans output
 
 LMEMis_output_RP_allIter = vector("list", rpIter)
 
+dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ]
+
 for (i in 1:rpIter) {
   # Pair trials with random permutation function
   #list[dfMissing_pairedWide_RP, fit.LMEMis_RP] <- pairTrials_RandomPerm(dfMissing)
-  fit.LMEMis_RP <- pairTrials_RandomPerm(dfMissing)[[2]]
+  fit.LMEMis_RP <- pairTrials_RandomPerm(, dfMissing_NoNA)[[2]]
+    
   # Extract marginal means from LME model
-  mLME <- emmeans::emmeans(fit.LMEMis_RP, pairwise~age, mode = "satterthwaite", 
+  mLME <- emmeans::emmeans(fit.LMEMis_RP, pairwise ~ age, mode = "satterthwaite", 
                            lmerTest.limit = 240000, at = list(presentNumberAvg = presentAvgValue))
   
   # Extract output values for each emotion condition 
