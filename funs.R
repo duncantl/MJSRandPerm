@@ -111,7 +111,13 @@ induceMissingTrials <- function(dfOriginal, caseDeletionPct) {
 
 # 2nd parameter Remove all NA rows (otherwise function will say that you've matched all pairs)
 pairTrials_RandomPerm <-
-function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ])
+    #
+    # adding the formula as an argument here.
+    # Would be better to explicitly pass it so that the environment
+    # is that of the caller, i.e. the globalenv()
+    #
+    #
+function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))
 {
     
   uids = unique(dfMissing_NoNA$SUBJECTID)
@@ -133,15 +139,34 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ])
   dfMissing_pairedWide$presentNumberAvg <- (dfMissing_pairedWide$presentNumber.A + dfMissing_pairedWide$presentNumber.B)/2
 
   # Fit LME model
-  fit.LMEMis <- lmer(meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID), data = dfMissing_pairedWide, REML = TRUE)
-  
-  return(list(dfMissing_pairedWide, fit.LMEMis)) # Return dataframe with paired trials
-    #!! Better to put names on these elements.
+ #   browser()
+    # Don't seem to be using
+    # c("ACTOR.A", "ACTOR.B", "presentNumberWeight.A", "presentNumberWeight.B", "ageWeight", "subclass")
+    # So why computing these in mkSubject
+    #  If we reduce the data frame to
+    #    dfMissing_pairedWide = dfMissing_pairedWide[c("SUBJECTID", "meanAmpNC_BMinusA", "age", "presentNumberAvg")]
+    # we get the same terms() object in the model. So it doesn't seem that the other variables not in the formula are being
+    # included indirectly, and we wouldn't expect them to be.
+#  formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID)
+#  environment(formula) = globalenv()
+  fit.LMEMis <- lmer(formula, data = dfMissing_pairedWide, REML = TRUE)
+
+#  on.exit(rm(dfMissing_pairedWide, uids, fit.LMEMis))
+  return(list(df = dfMissing_pairedWide, fit = fit.LMEMis)) # Return dataframe with paired trials
+    # Better to put names on these elements. So I have.
+    # But since the df is not being used, probably best not to return it. Also, it is captured by the environment
+    # of the formula so I would remove it. That's what the on.exit() does.
+    # or explicitly set the environment of the formula.
   
 }
 
 
 mkSubject =
+    #
+    #  Speed of a factor of 5 for entire pairTrials_RandomPerm(dfMissing) using
+    #  this version.
+    #
+    #
 function(dfMissing_NoNA_SubjectSubset)
 {
     # Find each emotion condition's rows
@@ -160,12 +185,31 @@ function(dfMissing_NoNA_SubjectSubset)
     dfMissing_NoNA_SubjectSubset$subclass[emotionRows_A] <- sample(numA)
     dfMissing_NoNA_SubjectSubset$subclass[!emotionRows_A] <- sample(numB)
 
-    x = dfMissing_NoNA_SubjectSubset = dfMissing_NoNA_SubjectSubset[ order(dfMissing_NoNA_SubjectSubset$emotion), ]
+    x = dfMissing_NoNA_SubjectSubset 
 
+    # Assuming that
+    #  1) we don't want cases where there is only one record for given value of subclass
+    #      in pivot_wider() these give NA values for meanAmpNC.A or meanAmpNC.B  and so they are omitted
+    #      in the next step
+    #  2)  for the remaining rows, there will be exactly two rows  for each subclass.
+    #
+    # With these,
+    #   a) remove the rows corresponding to a value of subclass that has only 1 value in the dataset.
+    #   b) order the rows by subclass, and within subclass by emotion.
+    #   c) we now have the rows in pairs, i.e., 1, 2  and 3, 4, and 5, 6   have the same subclass
+    #      So the result is to take the meanAmpNC, ACTOR, presentNumber, presentNumberWeight from the second row in each pair
+    #      and append it to the first row in each pair
+    #      BUT VECTORIZE this.
+    #
+    # This replaces pivot_wider.  It is much more specific/less general, but appears to give the same result.
+    # 
+    #  
+    #
+    
     x = x[ x$subclass %in% x$subclass[duplicated(x$subclass)], ]
     x = x[order(x$subclass, x$emotion),]
     i = seq(1, nrow(x) - 1, by = 2)
-# browser()    
+
     x[i, c("meanAmpNC.B", "ACTOR.B", "presentNumber.B", "presentNumberWeight.B")] = x[i+1, c(6, 4, 5, 7)]
     names(x)[c(6, 4, 5, 7)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")
 #    return(x[i, c(1L, 2L, 8L, 9L, 4L, 10L, 5L, 11L, 6L, 12L, 7L, 13L) ])    
@@ -178,10 +222,7 @@ function(dfMissing_NoNA_SubjectSubset)
 
     # Convert dataframe with paired trials from long to wide
 #    tmp = pivot_wider(dfMissing_NoNA_SubjectSubset, names_from = emotion, names_sep = ".", values_from = c(meanAmpNC, ACTOR, presentNumber, presentNumberWeight))
-#    dfMissing_pairedWide_SubjectSubset <- 
-      
 
-#    dfMissing_pairedWide_SubjectSubset
 }
 
 mkRecordWide =
