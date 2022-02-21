@@ -168,3 +168,13 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ])
     #!! Better to put names on these elements.
   
 }
+
+
+
+xpivot_wider =
+function(d, ...)
+{
+    isa = d$emotion == 'A'
+   
+
+}

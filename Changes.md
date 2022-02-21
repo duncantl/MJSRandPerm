@@ -1,5 +1,3 @@
-
-
 How much speedup is needed to make this viable?
 
 Most likely in the lme4/nlme fitting, but maybe generating the permutations.
@@ -47,7 +45,24 @@ These changes seem to ADD 10 seconds, i.e., for rpIter = 100
 Not sure these numbers are reliable, and they should change when we do a lot more iterations.
 
 
+Calling complete.cases() at the start of each call to pairTrials_RandomPerm()
+but the input is the same for each iteration of the loop calling this. 
+So can remove the NA rows once.
+
+
+for(i in 1:rpIter)  is ostensibly faster than replicate(), in this situation !
+  + 11.1-11.5 seconds for 10 iterations, versus 12.9-13.2
+  + may be different for many iterations.
+
+
 ¿ Remove emmeans:: qualifier for speed ?
+
+
+
+
+
+
+
 
 
 
@@ -58,6 +73,24 @@ induceMissingTrials() seems to be only called once.
 
 
 ## Profiling
+
+.External2 takes the most time, but a very flat/dispersed profiling table with nothing taking 
+significantly most of the time.
+
+To see what .External2 calls are taking the longest we can use lldb, or simpler, 
+look at the corresponding lines in the Rprof output.
+```
+ll = readLines("tm3.prof")
+ex2 = grep('^".External2"', ll)
+ex.funs = strsplit(ll[ex2], " ")
+table(sapply(ex.funs, `[`, 2))
+```
+
+Similarly, we can identify the source of the FUN in the apply functions with
+```r
+table(sapply(strsplit(ll[grep('^"FUN"', ll)], " "), `[`, 3))
+```
+
 
 ### ls()
 
@@ -110,7 +143,7 @@ routines
 ```
 
 
-Bases on a single iteration of the original script, we have
+Based on a single iteration of the original script, we have
 ```
              "C_termsform"             "C_modelframe" 
                         12                          9 

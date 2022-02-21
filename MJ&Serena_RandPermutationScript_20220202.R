@@ -159,7 +159,8 @@ LMEMis_output_RP_allIter = vector("list", rpIter)
 
 dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ]
 
-for (i in 1:rpIter) {
+#LMEMis_output_RP_allIter = replicate(rpIter, {
+for(i in 1:rpIter) {
   # Pair trials with random permutation function
   #list[dfMissing_pairedWide_RP, fit.LMEMis_RP] <- pairTrials_RandomPerm(dfMissing)
   fit.LMEMis_RP <- pairTrials_RandomPerm(, dfMissing_NoNA)[[2]]
@@ -183,7 +184,7 @@ for (i in 1:rpIter) {
 #  LMEMis_output_RP_oneIter$iteration <- i
     # LMEMis_output_RP_allIter <- bind_rows(LMEMis_output_RP_allIter, LMEMis_output_RP_oneIter)
   LMEMis_output_RP_allIter[[i]] <- LMEMis_output_RP_oneIter
-}
+} # , simplify = FALSE)
 
 
 # Combine results.
