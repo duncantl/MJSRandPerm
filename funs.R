@@ -128,10 +128,9 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
   dfMissing_pairedWide = do.call(rbind, dfMissing_pairedWide)
 
   # Remove all rows with NA
-###     dfMissing_pairedWide <- dfMissing_pairedWide[complete.cases(dfMissing_pairedWide), ] # Remove all NA rows (otherwise function will say that you've matched all pairs)
+  ### Already done by mkSubject()
+  # dfMissing_pairedWide <- dfMissing_pairedWide[complete.cases(dfMissing_pairedWide), ] # Remove all NA rows (otherwise function will say that you've matched all pairs)
 
-#browser()
-    
   # Calculate difference in amplitude between trial pairs  
   dfMissing_pairedWide$meanAmpNC_BMinusA <- dfMissing_pairedWide$meanAmpNC.B - dfMissing_pairedWide$meanAmpNC.A
   
@@ -139,7 +138,6 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
   dfMissing_pairedWide$presentNumberAvg <- (dfMissing_pairedWide$presentNumber.A + dfMissing_pairedWide$presentNumber.B)/2
 
   # Fit LME model
- #   browser()
     # Don't seem to be using
     # c("ACTOR.A", "ACTOR.B", "presentNumberWeight.A", "presentNumberWeight.B", "ageWeight", "subclass")
     # So why computing these in mkSubject
@@ -147,11 +145,16 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
     #    dfMissing_pairedWide = dfMissing_pairedWide[c("SUBJECTID", "meanAmpNC_BMinusA", "age", "presentNumberAvg")]
     # we get the same terms() object in the model. So it doesn't seem that the other variables not in the formula are being
     # included indirectly, and we wouldn't expect them to be.
+
+# Could explicitly set the environment of the formula if it is not a parameter that the caller can control.    
 #  formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID)
 #  environment(formula) = globalenv()
   fit.LMEMis <- lmer(formula, data = dfMissing_pairedWide, REML = TRUE)
 
+# If the formula has this call frame as the environment, probably want to remove the unwanted variables here as they
+# will continue to occupy memory.
 #  on.exit(rm(dfMissing_pairedWide, uids, fit.LMEMis))
+    
   return(list(df = dfMissing_pairedWide, fit = fit.LMEMis)) # Return dataframe with paired trials
     # Better to put names on these elements. So I have.
     # But since the df is not being used, probably best not to return it. Also, it is captured by the environment
@@ -210,15 +213,14 @@ function(dfMissing_NoNA_SubjectSubset)
     x = x[order(x$subclass, x$emotion),]
     i = seq(1, nrow(x) - 1, by = 2)
 
-    x[i, c("meanAmpNC.B", "ACTOR.B", "presentNumber.B", "presentNumberWeight.B")] = x[i+1, c(6, 4, 5, 7)]
-    names(x)[c(6, 4, 5, 7)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")
-#    return(x[i, c(1L, 2L, 8L, 9L, 4L, 10L, 5L, 11L, 6L, 12L, 7L, 13L) ])    
-    return(x[i, -3])
-
-# use above for now.
-    tmp = by(dfMissing_NoNA_SubjectSubset, dfMissing_NoNA_SubjectSubset$subclass, function(x) if(nrow(x) > 1) mkRecordWide(x) else NULL)
-    ans = do.call(rbind, tmp)
-    return(ans)
+    # x[i, c("meanAmpNC.B", "ACTOR.B", "presentNumber.B", "presentNumberWeight.B")] = x[i+1, c(6, 4, 5, 7)]
+    # Omit ACTOR.B and presentNumberWeight.B as you don't use them.  Leave the ones for A as we would have to explicitly remove them.
+    x[i, c("meanAmpNC.B", "presentNumber.B")] = x[i+1, c(6,  5)]
+    
+    names(x)[c(6, 4, 5, 7)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")    
+    x[i, ]
+    # If we want the same order as pivot_wider() returns, but not necessary.
+    #    return(x[i, c(1L, 2L, 8L, 9L, 4L, 10L, 5L, 11L, 6L, 12L, 7L, 13L) ])    
 
     # Convert dataframe with paired trials from long to wide
 #    tmp = pivot_wider(dfMissing_NoNA_SubjectSubset, names_from = emotion, names_sep = ".", values_from = c(meanAmpNC, ACTOR, presentNumber, presentNumberWeight))
