@@ -115,59 +115,85 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ])
 {
     
   uids = unique(dfMissing_NoNA$SUBJECTID)
-  # Initialize variable for storing paired data
-  dfMissing_pairedWide <- vector("list", length(uids))
+    # Initialize variable for storing paired data
 
-  ctr = 1L
-  for (subject in uids) { 
-    # Subset dfMissing_NoNA dataframe by subject
-    dfMissing_NoNA_SubjectSubset <- dfMissing_NoNA[dfMissing_NoNA$SUBJECTID == subject,]
-    
-    # Find each emotion condition's rows
-    emotionRows_A <- dfMissing_NoNA_SubjectSubset$emotion == "A"
-    emotionRows_B <- dfMissing_NoNA_SubjectSubset$emotion == "B"
-
-        # We sample both conditions A and B randomly so we get a random selection of actor/presentation number for both conditions
-    # Otherwise, selecting 1:n may result in always pairing Actor 1/Trial 1 of Emotion A with a random trial from Emotion B
-    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_A] <- sample(sum(emotionRows_A))
-    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_B] <- sample(sum(emotionRows_B))
-    
-    # Convert dataframe with paired trials from long to wide
-    dfMissing_pairedWide_SubjectSubset <- pivot_wider(dfMissing_NoNA_SubjectSubset, names_from = emotion, names_sep = ".", values_from = c(meanAmpNC, ACTOR, presentNumber, presentNumberWeight))
-      
-#browser()
-      
-    # If this subset does not have trials from both emotion conditions
-    if (!("meanAmpNC.B" %in% colnames(dfMissing_pairedWide_SubjectSubset) && "meanAmpNC.A" %in% colnames(dfMissing_pairedWide_SubjectSubset))) { 
-      next
-    }
-    
-    
-    # Store this subject's paired trial dataframe in dfMissing_pairedWide
-      #dfMissing_pairedWide <- bind_rows(dfMissing_pairedWide, dfMissing_pairedWide_SubjectSubset_NoNA)
-    dfMissing_pairedWide[[ctr]] <- dfMissing_pairedWide_SubjectSubset
-    ctr <- ctr + 1L
-  }
+  dfMissing_pairedWide = by(dfMissing_NoNA, dfMissing_NoNA$SUBJECTID, mkSubject)
   
-#browser()
   dfMissing_pairedWide = do.call(rbind, dfMissing_pairedWide)
 
   # Remove all rows with NA
-  dfMissing_pairedWide <- dfMissing_pairedWide[complete.cases(dfMissing_pairedWide), ] # Remove all NA rows (otherwise function will say that you've matched all pairs)
-  
+###     dfMissing_pairedWide <- dfMissing_pairedWide[complete.cases(dfMissing_pairedWide), ] # Remove all NA rows (otherwise function will say that you've matched all pairs)
+
+#browser()
+    
   # Calculate difference in amplitude between trial pairs  
   dfMissing_pairedWide$meanAmpNC_BMinusA <- dfMissing_pairedWide$meanAmpNC.B - dfMissing_pairedWide$meanAmpNC.A
   
   # Calculate average presentation number for each trial pair
-  dfMissing_pairedWide$presentNumberAvg <- (dfMissing_pairedWide$presentNumber.A+dfMissing_pairedWide$presentNumber.B)/2
+  dfMissing_pairedWide$presentNumberAvg <- (dfMissing_pairedWide$presentNumber.A + dfMissing_pairedWide$presentNumber.B)/2
 
   # Fit LME model
-  fit.LMEMis <- lmer(meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID), data=dfMissing_pairedWide, REML = TRUE)
+  fit.LMEMis <- lmer(meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID), data = dfMissing_pairedWide, REML = TRUE)
   
   return(list(dfMissing_pairedWide, fit.LMEMis)) # Return dataframe with paired trials
     #!! Better to put names on these elements.
   
 }
+
+
+mkSubject =
+function(dfMissing_NoNA_SubjectSubset)
+{
+    # Find each emotion condition's rows
+    emotionRows_A <- dfMissing_NoNA_SubjectSubset$emotion == "A"
+    numA = sum(emotionRows_A)
+    numB = length(emotionRows_A) - numA
+    #emotionRows_B <- !emotionRows_B # dfMissing_NoNA_SubjectSubset$emotion == "B"
+
+    # If this subset does not have trials from both emotion conditions
+    if (any(c(numA, numB) == 0))   # !(all(c("meanAmpNC.B", "meanAmpNC.A") %in% colnames(dfMissing_pairedWide_SubjectSubset))))
+      return(NULL)    
+
+        # We sample both conditions A and B randomly so we get a random selection of actor/presentation number for both conditions
+    # Otherwise, selecting 1:n may result in always pairing Actor 1/Trial 1 of Emotion A with a random trial from Emotion B
+
+    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_A] <- sample(numA)
+    dfMissing_NoNA_SubjectSubset$subclass[!emotionRows_A] <- sample(numB)
+
+    x = dfMissing_NoNA_SubjectSubset = dfMissing_NoNA_SubjectSubset[ order(dfMissing_NoNA_SubjectSubset$emotion), ]
+
+    x = x[ x$subclass %in% x$subclass[duplicated(x$subclass)], ]
+    x = x[order(x$subclass, x$emotion),]
+    i = seq(1, nrow(x) - 1, by = 2)
+# browser()    
+    x[i, c("meanAmpNC.B", "ACTOR.B", "presentNumber.B", "presentNumberWeight.B")] = x[i+1, c(6, 4, 5, 7)]
+    names(x)[c(6, 4, 5, 7)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")
+#    return(x[i, c(1L, 2L, 8L, 9L, 4L, 10L, 5L, 11L, 6L, 12L, 7L, 13L) ])    
+    return(x[i, -3])
+
+# use above for now.
+    tmp = by(dfMissing_NoNA_SubjectSubset, dfMissing_NoNA_SubjectSubset$subclass, function(x) if(nrow(x) > 1) mkRecordWide(x) else NULL)
+    ans = do.call(rbind, tmp)
+    return(ans)
+
+    # Convert dataframe with paired trials from long to wide
+#    tmp = pivot_wider(dfMissing_NoNA_SubjectSubset, names_from = emotion, names_sep = ".", values_from = c(meanAmpNC, ACTOR, presentNumber, presentNumberWeight))
+#    dfMissing_pairedWide_SubjectSubset <- 
+      
+
+#    dfMissing_pairedWide_SubjectSubset
+}
+
+mkRecordWide =
+function(x)
+{
+    ans = x[1, c(1, 2, 8, 9,   6, 4, 5, 7)]
+    names(ans)[5:8] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")
+    ans[ 1, c("meanAmpNC.B", "ACTOR.B", "presentNumber.B", "presentNumberWeight.B")] = x[2, c(6, 4, 5, 7) ]
+    ans
+}
+
+        
 
 
 
