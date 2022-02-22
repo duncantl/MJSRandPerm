@@ -142,7 +142,8 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
     # Only SUBJECTID and age as ACTOR and emotion are not used in the model.
   dfMissing_pairedWide[ c("SUBJECTID", "age")] =  lapply(dfMissing_pairedWide[ c("SUBJECTID", "age")], factor)
 
-return(dfMissing_pairedWide)
+#Just for testing making the data.frame but not fitting the model
+#  return(dfMissing_pairedWide)
   
   # Fit LME model
     # Don't seem to be using
@@ -227,9 +228,6 @@ function(x)
     x[i, c("meanAmpNC.B", "presentNumber.B")] = x[i+1, c(6,  5)]
     names(x)[c(6, 4, 5, 7)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")
 
-    # Using cbind() instead of x[i, varNames ] doesn't help much.  Still subsetting [.data.frame
-#    x = cbind(x[i, ],  x[i+1, c(6,  5)]  )
-#    names(x)[c(6, 4, 5, 7, 10, 11)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A", "meanAmpNC.B", "presentNumber.B")        
     x[i, ]
 
 

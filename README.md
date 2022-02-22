@@ -63,6 +63,49 @@ Rprof(NULL)
 head(summaryRprof("new.prof")$by.self, 10 )
 ```
 
+
+```
+                self.time self.pct total.time total.pct
+"[.data.frame"       0.44    16.42       1.70     63.43
+"[["                 0.30    11.19       1.12     41.79
+"[[.data.frame"      0.30    11.19       0.82     30.60
+"rbind"              0.28    10.45       0.66     24.63
+"sys.call"           0.26     9.70       0.26      9.70
+"%in%"               0.14     5.22       0.46     17.16
+"FUN"                0.10     3.73       2.68    100.00
+"sample.int"         0.10     3.73       0.10      3.73
+"<Anonymous>"        0.08     2.99       0.76     28.36
+"order"              0.08     2.99       0.24      8.96
+"all"                0.06     2.24       0.06      2.24
+"["                  0.04     1.49       1.74     64.93
+"vapply"             0.04     1.49       0.10      3.73
+"anyDuplicated"      0.04     1.49       0.06      2.24
+"duplicated"         0.04     1.49       0.06      2.24
+```
+
++ If we make dfMissing a tibble and modify mkSubject() to assign subclass first before doing it on subsets (which data.frame handles),
+  the code doesn't call [.data.frame, but is slightly slower. So no gain with tibble, and the regular data.frame runs in about 91-93% of the time the tibble version does.
+
++ focusing on rbind(), add deparse.level = FALSE, make.row.names = FALSE, factor.exclude = FALSE
+   + This reduces the % for rbind to 7.41
+
++ The [.data.frame calls are for 
+   + `[.data.frame`(dfMissing, complete.cases(dfMissing), )  - one time subsetting by complete.cases() in the default value for the second parameter of pairsTrial_RandomPerm
+   +  from by/tapply    `[.data.frame`(data, x, , drop = FALSE)
+   +  x = x[ x$subclass %in% x$subclass[duplicated(x$subclass)], ]
+   + x = x[ order(x$subclass, x$emotion) , ]
+   + x[i, c("meanAmpNC.B", "presentNumber.B")] = x[i+1, c(6,  5)]
+   + x[i, ] from mkWide
+
+  The only one that seems like it could be improved is #5, adding meanAmpNC.B, presentNumber.B as
+  columns, perhaps with cbind(), but that is [<-.data.frame, not [.data.frame so no!
+
+
++ sys.call() is being called from [[.data.frame to check for argument names not "exact" to issue a warning. This is unnecessary overhead that should be
+  controllable. And should be found in names(list(...)).
+  
++ Can we suppress the rownames on dfMissing and make a difference?  
+
 ```
                 self.time self.pct total.time total.pct
 "%in%"               0.32    12.40       0.40     15.50
@@ -83,6 +126,10 @@ head(summaryRprof("new.prof")$by.self, 10 )
 ```   
 dfMissing[ sapply(dfMissing, is.factor) ] = lapply(dfMissing[ sapply(dfMissing, is.factor) ], as.character)
 ```
+
+
+
+
 
 Compare with original
 ```r
