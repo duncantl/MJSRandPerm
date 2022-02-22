@@ -1,3 +1,27 @@
+## Notes
+
+
+## mkSubject
+
++ check if we have A and B values for emotion **before** calling pivot_wider() rather than checking for
+   meanAmpNC.A and meanAmpNC.B in the results of pivot_wider.  Doing unnecessary work in
+   pivot_wider() that is both expensive and you'll discard.
+
++ Replace the pivot_wider() with vectorized operations that are more specific but avoids unnecessary
+  computations by 
+    + omitting subclass values with only one record before widening, and 
+    + by doing this in base R
+
++ Instead of widening the data.frame in each mkResult() call, leave the entire data.frame
+  and do the widening in pairTrials_RandomPerm()
+
+
+
+
+## pairTrials_RandomPerm
+
+
+
 
 
 ## Environment of the Formula, Capturing Objects and Garbage Collection.
@@ -29,29 +53,36 @@ z = pairTrials_RandomPerm(dfMissing, formula = meanAmpNC_BMinusA ~ age + present
 
 
 ### Current Profiling
-Corresponding to git hash 9d6f3926fbb6
+Corresponding to git hash 9d6f3926fbb6 but with pairTrials_RandomPerm() return the data.frame and
+not fitting the lmer model, so we can look just at the data.frame creation.
 
 ```r
 Rprof("new.prof")
-tm = replicate(10, system.time(pairTrials_RandomPerm(dfMissing, formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))))
+tm = replicate(10, pairTrials_RandomPerm(dfMissing, formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID)))
 Rprof(NULL)
-head(summaryRprof("new.prof")$by.self )
+head(summaryRprof("new.prof")$by.self, 10 )
 ```
 
 ```
                 self.time self.pct total.time total.pct
-"gc"                 5.22    46.94       5.22     46.94
-"[.data.frame"       0.46     4.14       2.08     18.71
-"[[.data.frame"      0.32     2.88       1.04      9.35
-"<Anonymous>"        0.28     2.52       1.94     17.45
-"%in%"               0.28     2.52       0.52      4.68
-".Call"              0.28     2.52       0.28      2.52
-"sys.call"           0.20     1.80       0.20      1.80
-"is"                 0.16     1.44       0.34      3.06
-"NextMethod"         0.16     1.44       0.16      1.44
-"[["                 0.14     1.26       1.18     10.61
+"%in%"               0.32    12.40       0.40     15.50
+"[[.data.frame"      0.24     9.30       0.78     30.23
+"[.data.frame"       0.18     6.98       1.56     60.47
+"[<-.factor"         0.18     6.98       0.20      7.75
+"order"              0.12     4.65       0.32     12.40
+"FUN"                0.10     3.88       2.58    100.00
+"rbind"              0.10     3.88       0.72     27.91
+"[.factor"           0.10     3.88       0.20      7.75
+"[["                 0.08     3.10       0.86     33.33
+"<Anonymous>"        0.08     3.10       0.82     31.78
 ```
 
++  [<-.factor seems to come from do.call(rbind, dfMissing_pairedWide)
+   + caused by having to check the levels of the factors each time, yet we know they are the same.
+   + XXX convert factors in dfMissing to character vectors. Change only when fitting model.  XXXX make ce
+```   
+dfMissing[ sapply(dfMissing, is.factor) ] = lapply(dfMissing[ sapply(dfMissing, is.factor) ], as.character)
+```
 
 Compare with original
 ```r
