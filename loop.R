@@ -14,7 +14,11 @@ LMEMis_output_RP_allIter = vector("list", rpIter)
 # Only need to compute this once, not each time in the loop, actually in the call to pairTrials_RandomPerm()
 dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ]
 
+
+source("setNSFunctions.R")
+origFuns = setNSFunctions()
 Rprof("new.prof")
+
 
 #LMEMis_output_RP_allIter = replicate(rpIter, {
 for(i in 1:rpIter) {
@@ -57,4 +61,6 @@ idx = seq(1, by = 2, length = rpIter)
 LMEMis_output_RP_allIter2$inCL.vec[idx] = ageArray[1] >= LMEMis_output_RP_allIter2$lower.CL[idx] & ageArray[1] <= LMEMis_output_RP_allIter2$upper.CL[idx]
 LMEMis_output_RP_allIter2$inCL.vec[idx + 1L] = ageArray[2] >= LMEMis_output_RP_allIter2$lower.CL[idx + 1L] & ageArray[2] <= LMEMis_output_RP_allIter2$upper.CL[idx + 1L]
 
+
 Rprof(NULL)
+resetNSFunctions(origFuns)
