@@ -243,6 +243,23 @@ good starting points, rather than starting the search from scratch each time.
 + Instead of widening the data.frame in each mkResult() call, leave the entire data.frame
   and do the widening in pairTrials_RandomPerm()
 
++ The approach relies on 2 assumptions based that need to be true.
+  + for each SUBJECTID and a given value of subclass
+    + we either have a single record and so no A AND B ACTOR so we will discard that record for
+      fitting the model
+    + we have exactly 2 records, one for A and one for B and we combine those in the wide data.frame
+
+  + Assuming this, 
+    + for each SUBJECTID, we make a narrow data.frame with the pairs of records
+       in successive rows - using order(SUBJECTID, subclass).
+  	+ we combine these data.frames so we have all SUBJECTID and pairs of rows.
+	+ we extract rows 1, 3, 5, 7, .... 
+	+ we get meanAmpNC and presentNumber from rows 2, 4, 6, 8, .... and add them to rows 1, 3, 5, 7,
+      .. as meanAmpNC.B, presentNumber.B
+    + this is vectorized.	  
+	  
+
++ [.data.frame is the resulting bottleneck function
 
 
 
