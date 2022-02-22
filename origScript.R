@@ -301,7 +301,9 @@ list[dfMissing, subjectCaseDeletion, trialCount] <- induceMissingTrials(dfOrigin
 
 # In this example, we have one dataset. We randomly permute this dataset 10,000 times,
 # store emmeans results for each iteration in separate array, then calculate final emmeans summary
-rpIter = 1  # was originally 10000
+if(!exists("rpIter"))
+    rpIter = 250 # was originally uncondition and 10000
+
 presentAvgValue = 5.5 # Value needed for emmeans calculations
 ageN <- 2 # Value needed for extracting rows from emmeans output
 ageArray <- c(-1.998, 0) # Array needed for extrating emmeans output 

@@ -72,11 +72,17 @@ filename = "Sample0751-NCMeanAmpOutput.csv"
 # Import data sample ("population" dataset)
 dfOriginal <- fread(filename) 
 
-# Specify desired columns as factors for subsequent analysis 
-dfOriginal$ACTOR <- as.factor(dfOriginal$ACTOR)
-dfOriginal$SUBJECTID <- as.factor(dfOriginal$SUBJECTID)
-dfOriginal$emotion <- as.factor(dfOriginal$emotion)
-dfOriginal$age <- as.factor(dfOriginal$age)
+if(FALSE) {
+    # While this makes sens, it makes creating the data.frame in pairTrials_RandomPerm() expensive.
+    # so keep as character vectors until the modeling step.
+    
+    # Specify desired columns as factors for subsequent analysis 
+    dfOriginal$ACTOR <- as.factor(dfOriginal$ACTOR)
+    dfOriginal$SUBJECTID <- as.factor(dfOriginal$SUBJECTID)
+    dfOriginal$emotion <- as.factor(dfOriginal$emotion)
+    dfOriginal$age <- as.factor(dfOriginal$age)
+}
+
 
 #-----------------------------------------------------------------------
 # 5. SPECIFY MISSINGNESS PATTERN 
@@ -148,7 +154,9 @@ dfMissing <- induceMissingTrials(dfOriginal, caseDeletionPct) [[1]]
 
 # In this example, we have one dataset. We randomly permute this dataset 10,000 times,
 # store emmeans results for each iteration in separate array, then calculate final emmeans summary
-rpIter = 10 #DTL 10000
+if(!exists("rpIter"))
+    rpIter = 250 #DTL 10000
+
 presentAvgValue = 5.5 # Value needed for emmeans calculations
 ageN <- 2 # Value needed for extracting rows from emmeans output
 ageArray <- c(-1.998, 0) # Array needed for extracting emmeans output 
@@ -157,13 +165,14 @@ ageArray <- c(-1.998, 0) # Array needed for extracting emmeans output
 
 LMEMis_output_RP_allIter = vector("list", rpIter)
 
+# Only need to compute this once, not each time in the loop, actually in the call to pairTrials_RandomPerm()
 dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ]
 
 #LMEMis_output_RP_allIter = replicate(rpIter, {
 for(i in 1:rpIter) {
   # Pair trials with random permutation function
   #list[dfMissing_pairedWide_RP, fit.LMEMis_RP] <- pairTrials_RandomPerm(dfMissing)
-  fit.LMEMis_RP <- pairTrials_RandomPerm(, dfMissing_NoNA)[[2]]
+  fit.LMEMis_RP <- pairTrials_RandomPerm(, dfMissing_NoNA, formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))[[2]]  #XXX add the formula here.
     
   # Extract marginal means from LME model
   mLME <- emmeans::emmeans(fit.LMEMis_RP, pairwise ~ age, mode = "satterthwaite", 
