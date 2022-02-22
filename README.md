@@ -1,7 +1,128 @@
-Big "thank you" to MJ & Serena for this example.
+## Big "thank you" to MJ & Serena for this example.
 
-This is simulation that involves
-+ 
+
+## Current Summary
+
++ We seem to have improved the creation of the data.frame for fitting each model by a factor of
+   between 16 and 17.
+
++ When we combine this with fitting the model, the speedup is a factor of about 7.
+   + The improvement from creating the data.frame gets diminished as the rest of the code takes a
+     non-trivial amount of time.
+
+
++ Profiling the entire script
+```
+                       self.time self.pct total.time total.pct
+"ls"                       11.92    18.67      11.94     18.70
+"[.data.frame"              7.72    12.09      12.76     19.98
+"stopifnot"                 4.50     7.05       4.54      7.11
+"order"                     3.60     5.64       4.06      6.36
+"rbind"                     3.54     5.54       4.04      6.33
+"<Anonymous>"               1.52     2.38      34.30     53.71
+"utils::getAnywhere"        1.52     2.38      15.08     23.61
+".Call"                     1.34     2.10       1.52      2.38
+".getClassesFromCache"      1.32     2.07       1.32      2.07
+"data.frame"                1.24     1.94       3.62      5.67
+"$"                         1.04     1.63       2.86      4.48
+"initialize"                1.02     1.60       7.48     11.71
+"%in%"                      0.94     1.47      13.50     21.14
+"validObject"               0.86     1.35       1.90      2.98
+".nextMethod"               0.82     1.28       2.46      3.85
+"apply"                     0.80     1.25       2.24      3.51
+"model.frame.default"       0.76     1.19       1.58      2.47
+"jacobian.default"          0.60     0.94       1.26      1.97
+"installClassMethod"        0.60     0.94       0.88      1.38
+"getClassDef"               0.56     0.88       2.04      3.19
+```
++ 2 iterations of the loop
+
++ collecting the call stacks for ls() just running loop.R, we have 289 calls to ls(), 9 unique call stacks .
+   + 3 are happening in the byte-code compiler.
+      + we can try to byte compile these ahead of time (e.g. put code in a package)
+	    or just let this one-time events happen and diminish in signifance across more
+		iterations of the loop.
+   + 6 recover_data calling .get.outside.method("recover_data", cl),  "emm_basis"
+
+   + debugging emm_basis, looking for emm_basis.lmerModLmerTest
+      + doesn't find it so just calls UseMethod()
+	  
+   + Checking each of the 11 calls to  .get.outside.method,  we find all return NULL,
+     so a complete waste of time in this case.
+```r
+val = vector("list", 300)
+ctr = 1L
+trace(emmeans:::.get.outside.method, exit = quote({val[[ctr ]] <<- returnValue(); ctr<<- ctr+1L}),
+print = FALSE)
+```
++ We replace .get.outside.method with a function that just returns NULL
+```r
+ns = getNamespace("emmeans")
+unlockBinding(".get.outside.method", ns)
+assign(".get.outside.method", function(generic, cls) NULL, ns)
+```
+
++ Looking at stopifnot(). rpIter = 20 iterations of the loop
+   + 2541 calls to stopifnot; 350 unique call stacks
+   + srcfilecopy() called from source()
+   + lmerControl() 
+      + to check if object is a list.
+	  + .makeCC x 3
+   + We'll make stopifnot a no-op.  If we just return invisible(), we get an error
+     in `KhatriRao(sm, t(mm)) : 'list' object cannot be coerced to type 'integer'`
+	 So we force the evaluation of the arguments as this is probably lazy evaluation.
+```
+old.stopifnot = stopifnot
+ns = getNamespace("base")
+unlockBinding("stopifnot", ns)
+assign("stopifnot", function (..., exprs, exprObject, local = TRUE) { list(...); if(!missing(exprs)) exprs; if(!missing(exprObject)) exprObject;  invisible()}, ns)
+```
+
++ With .get.outside.method and stopifnot made degenerate, we get
+```
+                      self.time self.pct total.time total.pct
+"[.data.frame"             0.50    12.95       0.90     23.32
+"order"                    0.34     8.81       0.38      9.84
+"rbind"                    0.32     8.29       0.36      9.33
+"<Anonymous>"              0.20     5.18       1.58     40.93
+".Call"                    0.16     4.15       0.16      4.15
+"data.frame"               0.10     2.59       0.32      8.29
+"validObject"              0.10     2.59       0.16      4.15
+".identC"                  0.10     2.59       0.10      2.59
+"initialize"               0.08     2.07       0.60     15.54
+"apply"                    0.08     2.07       0.22      5.70
+"model.frame.default"      0.08     2.07       0.20      5.18
+".all.vars"                0.08     2.07       0.12      3.11
+"genD.default"             0.06     1.55       0.24      6.22
+"$"                        0.06     1.55       0.18      4.66
+".adj.p.value"             0.06     1.55       0.06      1.55
+".class1"                  0.04     1.04       0.14      3.63
+"paste"                    0.04     1.04       0.10      2.59
+"%in%"                     0.04     1.04       0.06      1.55
+"getClassDef"              0.04     1.04       0.06      1.55
+"jacobian.default"         0.04     1.04       0.06      1.55
+```
+
++ Running
+```r
+rpIter = 250
+e = new.env()
+source("origFuns.R", e)
+z = e$pairTrials_RandomPerm(dfMissing) # evaluate multiple times to byte compile
+tm.orig = system.time(source("origScript_noFuns.R", e))
+
+tm.new = system.time(source("MJ&Serena_RandPermutationScript_20220202.R"))
+
+tm.orig/tm.new
+    user   system  elapsed 
+6.627625 4.354592 6.603736 
+
+rpIter = 1000
+```
+
+
+   
+## Some Suggestions/Questions
 
 See [Changes.md](Changes.md) for some of the very high-level changes related
 to 
@@ -9,12 +130,11 @@ to
     manner
   + suggestions for simplifying/removing  code that is redundant
 
-Most of these changes are in the updated script
+Most of these current changes are in the updated script
 [MJ&Serena_RandPermutationScript_20220202.R](MJ&Serena_RandPermutationScript_20220202.R).
 
 
 ## Timing the Original and New Script
-
 
 The original script (with the number of iterations adjusted)
 ```r
@@ -30,6 +150,25 @@ source("MJ&Serena_RandPermutationScript_20220202.R")
 We probably have to run each of these several times to get the byte-code compilation.
 This is a reason for separating the functions from origScript.R so that we
 are not redefining them each time we source that script.
+
+
+Profiling data from the modified version that doesn't use the tibble or tidyverse functions.
+There 
+```
+                      self.time self.pct total.time total.pct
+"[<-.data.frame"           0.06    16.67       0.06     16.67
+"exists"                   0.06    16.67       0.06     16.67
+"withCallingHandlers"      0.06    16.67       0.06     16.67
+".Call"                    0.02     5.56       0.18     50.00
+"DataMask$new"             0.02     5.56       0.08     22.22
+"findCenvVar"              0.02     5.56       0.08     22.22
+"group_data"               0.02     5.56       0.06     16.67
+"enexpr"                   0.02     5.56       0.02      5.56
+"length"                   0.02     5.56       0.02      5.56
+"new_data_frame"           0.02     5.56       0.02      5.56
+"paste0"                   0.02     5.56       0.02      5.56
+"standardGeneric"          0.02     5.56       0.02      5.56
+```
 
 
 
