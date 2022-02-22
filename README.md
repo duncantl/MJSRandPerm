@@ -1,5 +1,81 @@
 ## Big "thank you" to MJ & Serena for this example.
 
+# Current Status (Feb 22, 2022)
+
+Currently, the modified version (see below) runs almost 7.5 times faster
+than the original code for a `rpIter = 250`, the number of iterations in the loop.
+This should also consume less memory (since the formula created in the pairTrials_RandomPerm() function
+was capturing the call frame and the data.frame and was part of the return value.)
+
+
+We could probably get more speed.
+  + by using lmerControl()
+    + passing good starting values 
+  + avoiding some unnecessary checks.
+  
+  
+# CAVEAT  
+
+To get a little more speed, we modify three functions in the search path
++ stopifnot()
++ [[.data.frame
++ emmeans::.get.outside.method
+
+The code modifies these just before running the final loop to simulate and fit the models.
+At the end, the code resets them.
+If there is an error during the loop, these functions will remain set to their new versions.
+Call
+```r
+resetNSFunctions(origFuns)
+```
+or restart the R session.
+
+## Files
+
+### Original Files
++ origScript.R 
+   + This was the starting point.
+   + It contains 
+       + 2 functions, 
+	   + the 6 initialization steps
+	   + the loop to create the permutation data frame and fit the model
+
++ origFuns.R
+   + the 2 original functions extracted from origScript.R
+
++ origScript_noFuns.R
+  + the origScript.R without the 2 functions moved to origFuns.R
+  
+
+
+### New Versions
+
+We need each of the following 4 files to run the code
+
++ MJ&Serena_RandPermutationScript_20220202.R
+   + the full script, modified from origScript_noFuns.R
+
++ funs.R
+   + 2 functions from origFuns.R
+   + significantly modified version of `pairTrials_RandomPerm()`
+      + about a factor of 6-7 times faster overall
+	     + 17 times faster for making the permutation data.frame.
+   + induceMissingTrials() not changed since only called once.
+      + could be made faster if important to do so.
+
++ loop.R
+   + the loop (step 7) separated from the origScript.R
+     + modified to move some computations outside of the loop
+
++ setNSFunctions.R
+   + Two functions that set and reset functions in packages in the search path to get a little more
+     speed.
+
+
+### Sample Data Set
+
++ Sample0751-NCMeanAmpOutput.csv
+
 
 ## Current Summary
 
