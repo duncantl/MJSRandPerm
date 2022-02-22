@@ -2,7 +2,6 @@
 
 [https://github.com/duncantl/MJSRandPerm](https://github.com/duncantl/MJSRandPerm)
 
-
 # Current Status (Feb 22, 2022)
 
 Currently, the modified version (see below) runs almost 7.5 times faster
@@ -11,9 +10,9 @@ This should also consume less memory (since the formula created in the pairTrial
 was capturing the call frame and the data.frame and was part of the return value.)
 
 
-We could probably get more speed.
+We could probably get more speed
   + by using lmerControl()
-    + passing good starting values 
+    + to pass good starting values 
   + avoiding some unnecessary checks.
   
   
