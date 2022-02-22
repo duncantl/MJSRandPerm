@@ -1,25 +1,21 @@
-How much speedup is needed to make this viable?
++ Most likely in the lme4/nlme fitting, but maybe generating the permutations.
++ Looks like can parallelize this. So get on a large machine and run in parallel.
 
-Most likely in the lme4/nlme fitting, but maybe generating the permutations.
++ Within the loop (which one?) , there is a loop from 1:ageN and then set the first two names names of the result to
+  age and estimate. Is the same value of 2 for  ageN = 2 and setting the 2 names a coincidence or
+  supposed to be connected.  Probably a coincidence.
 
-Looks like can parallelize this. So get on a large machine and run in parallel.
-
-
-Within the loop, there is a loop from 1:ageN and then set the first two names names of the result to
-age and estimate. Is the same value of 2 for  ageN = 2 and setting the 2 names a coincidence or
-supposed to be connected.  Probably a coincidence.
-
-
-
-Rather than append  LMEMis_output_RP_oneIter to LMEMis_output_RP_allIter in each iteration,
-+ pre-allocate and fill in rows
-+ keep as a list until the very end and then use do.call(rbind, LMEMis_output_RP_allIter)
++ Rather than append  LMEMis_output_RP_oneIter to LMEMis_output_RP_allIter in each iteration,
+   + pre-allocate and fill in rows
+   + keep as a list until the very end and then use do.call(rbind, LMEMis_output_RP_allIter)
 
 
-Set the names later.
++ Set the names later, i.e., outside the loop after it has complete.
+  + Same with computing derived variables on columns in the final data.frame.
 
-Do the between at the end in vectorized form. 2 steps for the young and old corresponding to the two
-values of ageArray.
++ Do the between at the end in vectorized form. 2 steps for the young and old corresponding to the two
+  values of ageArray.
+  + Do outside of the loop, after it has completed
 
 
 + dfMissing_pairedWide_RP is assigned but never used in each iteration.
@@ -30,32 +26,29 @@ values of ageArray.
 ```
   + Can also think about simplifying the function and not computing/returning the first element
   
-Good to put names on the elements of the list returned by pairTrials_RandomPerm
++ Good to put names on the elements of the list returned by pairTrials_RandomPerm
   + this allows us to use 
   `pairTrials_RandomPerm(dfMissing)$fit`
-  rather than `pairTrials_RandomPerm(dfMissing)[[2]]`
+   rather than `pairTrials_RandomPerm(dfMissing)[[2]]`
 
 
-  
++ These changes seem to ADD 10 seconds, i.e., for rpIter = 100
+   + origScript.R takes 130 seconds
+   + the modified script (commit 10264bb4a) takes 140.
+   + Not sure these numbers are reliable, and they should change when we do a lot more iterations.
 
 
-These changes seem to ADD 10 seconds, i.e., for rpIter = 100
-+ origScript.R takes 130 seconds
-+ the modified script (commit 10264bb4a) takes 140.
-Not sure these numbers are reliable, and they should change when we do a lot more iterations.
++ Calling complete.cases() at the start of each call to pairTrials_RandomPerm()
+   but the input is the same for each iteration of the loop calling this. 
+   + So can remove the NA rows once and pass this as the second argumet to pairTrials_RandomPerm()
 
 
-Calling complete.cases() at the start of each call to pairTrials_RandomPerm()
-but the input is the same for each iteration of the loop calling this. 
-So can remove the NA rows once.
-
-
-for(i in 1:rpIter)  is ostensibly faster than replicate(), in this situation !
++ for(i in 1:rpIter)  is ostensibly faster than replicate(), in this situation !
   + 11.1-11.5 seconds for 10 iterations, versus 12.9-13.2
   + may be different for many iterations.
 
 
-¿ Remove emmeans:: qualifier for speed ?
++ ¿ Remove emmeans:: qualifier for speed ?
 
 
 

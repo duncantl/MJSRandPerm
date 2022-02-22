@@ -1,8 +1,42 @@
-Thanks to 
-## Notes
+Big "thank you" to MJ & Serena for this example.
+
+This is simulation that involves
++ 
+
+See [Changes.md](Changes.md) for some of the very high-level changes related
+to 
+  + changing computations done in loops and moving them outside and after the loop in a vectorized
+    manner
+  + suggestions for simplifying/removing  code that is redundant
+
+Most of these changes are in the updated script
+[MJ&Serena_RandPermutationScript_20220202.R](MJ&Serena_RandPermutationScript_20220202.R).
 
 
-Compare with original
+## Timing the Original and New Script
+
+
+The original script (with the number of iterations adjusted)
+```r
+source("origScript.R")
+```
+
+The modified version can be run 
+```r
+source("funs.R")
+source("MJ&Serena_RandPermutationScript_20220202.R")
+```
+
+We probably have to run each of these several times to get the byte-code compilation.
+This is a reason for separating the functions from origScript.R so that we
+are not redefining them each time we source that script.
+
+
+
+## Comparing Core Function between Original and Modified
+
+
+Compare with original **function pairTrials_RandomPerm** - not the scripts
 ```r
 library(plyr) 
 library(lme4) 
@@ -18,10 +52,10 @@ library(stringr)
 library(MatchIt) 
 library(tidyr) 
 
-
 dfMissing = readRDS("dfMissing.rds")
-e = new.env()
 
+
+e = new.env()
 source("origFuns.R", e)
 invisible(replicate(5, e$pairTrials_RandomPerm(dfMissing)))
 tm.orig = replicate(10, system.time(e$pairTrials_RandomPerm(dfMissing)))
@@ -30,17 +64,29 @@ source("funs.R")
 invisible(replicate(5, pairTrials_RandomPerm(dfMissing, formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))))
 tm = replicate(10, system.time(pairTrials_RandomPerm(dfMissing, formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))))
 
-
 summary(tm.orig[3,])/summary(tm[3,])
+```
 
+```
 #   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 #  7.107   7.088   7.187   7.048   7.121   6.326 
 ```
 
 
+If we change the pairTrials_RandomPerm() function in each of origFuns.R and funs.R 
+to return the data frame just before fitting the lmer model, we get 
+```r
+summary(tm.orig[3,])/summary(tm[3,])
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  15.52   16.45   16.48   16.39   16.65   16.03 
 ```
+So for creating the data.frame for the model fitting, we have a speedup of a factor of 16.
+This declines to a factor of 7 when we fit the model.
 
-```
+When fitting the model, we should provide a control argument that provides
+good starting points, rather than starting the search from scratch each time.
+
+
 
 
 

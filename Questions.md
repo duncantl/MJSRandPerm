@@ -13,3 +13,4 @@
 + Why using pivot_wider?  
   + i.e., committed to tidyverse?
   + Seems to have unnecessary overhead.
++ How much speedup is needed to make this viable?
