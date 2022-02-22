@@ -119,11 +119,11 @@ pairTrials_RandomPerm <-
     #
 function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))
 {
-  dfMissing_pairedWide = by(dfMissing_NoNA, dfMissing_NoNA$SUBJECTID, mkSubject)
+#  dfMissing_pairedWide = by(dfMissing_NoNA, dfMissing_NoNA$SUBJECTID, mkSubject)
+#  dfMissing_pairedWide =  structure(rbindlist(dfMissing_pairedWide), class = "data.frame") 
 
-    # data.table's rbindlist.  For 250 iterations of the loop, seems to save about 1 second overall.
-  dfMissing_pairedWide =  structure(rbindlist(dfMissing_pairedWide), class = "data.frame")  # do.call(rbind, c(dfMissing_pairedWide, deparse.level = 0, make.row.names = FALSE, factor.exclude = FALSE))
-
+  dfMissing_pairedWide = pairRecords2(dfMissing_NoNA)
+    
   dfMissing_pairedWide = mkWide(dfMissing_pairedWide)
     
   # Remove all rows with NA
