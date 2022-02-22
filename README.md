@@ -71,20 +71,24 @@ assign(".get.outside.method", function(generic, cls) NULL, ns)
    + We'll make stopifnot a no-op.  If we just return invisible(), we get an error
      in `KhatriRao(sm, t(mm)) : 'list' object cannot be coerced to type 'integer'`
 	 So we force the evaluation of the arguments as this is probably lazy evaluation.
-```
+```r
 old.stopifnot = stopifnot
 ns = getNamespace("base")
 unlockBinding("stopifnot", ns)
 assign("stopifnot", function (..., exprs, exprObject, local = TRUE) { list(...); if(!missing(exprs)) exprs; if(!missing(exprObject)) exprObject;  invisible()}, ns)
 ```
 
-```
+```r
 f = `[[.data.frame`
 body(f) = body(f)[-3]
 ns = getNamespace("base")
 unlockBinding("[[.data.frame", ns)
 assign("[[.data.frame", f, ns) 
 ```
+
+   + See setNSFunctions.R for functions to set and reset these.
+     + Currently, if there is an error between setting and resetting these, they will be left in their modified state.
+	   Call `resetNSFunctions(origFuns)` or restart the R session.
 
 + With .get.outside.method and stopifnot made degenerate, we get
 ```
