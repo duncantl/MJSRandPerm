@@ -121,10 +121,9 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
 {
   dfMissing_pairedWide = by(dfMissing_NoNA, dfMissing_NoNA$SUBJECTID, mkSubject)
 
-  dfMissing_pairedWide = do.call(rbind, dfMissing_pairedWide)
+  dfMissing_pairedWide = do.call(rbind, c(dfMissing_pairedWide, deparse.level = 0, make.row.names = FALSE, factor.exclude = FALSE))
 
   dfMissing_pairedWide = mkWide(dfMissing_pairedWide)
-#browser()
     
   # Remove all rows with NA
   ### Already done by mkSubject()
@@ -136,13 +135,15 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
   # Calculate average presentation number for each trial pair
   dfMissing_pairedWide$presentNumberAvg <- (dfMissing_pairedWide$presentNumber.A + dfMissing_pairedWide$presentNumber.B)/2
 
-return(dfMissing_pairedWide)#XXXX
+#return(dfMissing_pairedWide)#XXXX
 
     # Since we kept SUBJECTID, age, emotion and ACTOR as character vectors to make rbind() etc. faster,
     # we need to convert them to factor()s for fitting the model.
     # Only SUBJECTID and age as ACTOR and emotion are not used in the model.
   dfMissing_pairedWide[ c("SUBJECTID", "age")] =  lapply(dfMissing_pairedWide[ c("SUBJECTID", "age")], factor)
-    
+
+return(dfMissing_pairedWide)
+  
   # Fit LME model
     # Don't seem to be using
     # c("ACTOR.A", "ACTOR.B", "presentNumberWeight.A", "presentNumberWeight.B", "ageWeight", "subclass")
@@ -161,7 +162,7 @@ return(dfMissing_pairedWide)#XXXX
 # will continue to occupy memory.
 #  on.exit(rm(dfMissing_pairedWide, uids, fit.LMEMis))
     
-  return(list(df = dfMissing_pairedWide, fit = fit.LMEMis)) # Return dataframe with paired trials
+  list(df = dfMissing_pairedWide, fit = fit.LMEMis) # Return dataframe with paired trials
     # Better to put names on these elements. So I have.
     # But since the df is not being used, probably best not to return it. Also, it is captured by the environment
     # of the formula so I would remove it. That's what the on.exit() does.
@@ -172,9 +173,6 @@ return(dfMissing_pairedWide)#XXXX
 
 mkSubject =
     #
-    #  Speed of a factor of 5 for entire pairTrials_RandomPerm(dfMissing) using
-    #  this version.
-    #
     #
 function(dfMissing_NoNA_SubjectSubset)
 {
@@ -182,7 +180,6 @@ function(dfMissing_NoNA_SubjectSubset)
     emotionRows_A <- dfMissing_NoNA_SubjectSubset$emotion == "A"
     numA = sum(emotionRows_A)
     numB = length(emotionRows_A) - numA
-    #emotionRows_B <- !emotionRows_B # dfMissing_NoNA_SubjectSubset$emotion == "B"
 
     # If this subset does not have trials from both emotion conditions, bail out.
     if (any(c(numA, numB) == 0))  
@@ -192,8 +189,8 @@ function(dfMissing_NoNA_SubjectSubset)
     # Otherwise, selecting 1:n may result in always pairing Actor 1/Trial 1 of Emotion A with a random trial from Emotion B
 # need to create this if using a tibble, not a data.frame    
 # dfMissing_NoNA_SubjectSubset$subclass = 1L
-    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_A] <- sample(numA)
-    dfMissing_NoNA_SubjectSubset$subclass[!emotionRows_A] <- sample(numB)
+    dfMissing_NoNA_SubjectSubset$subclass[emotionRows_A] <- sample.int(numA)
+    dfMissing_NoNA_SubjectSubset$subclass[!emotionRows_A] <- sample.int(numB)
 
     x = dfMissing_NoNA_SubjectSubset 
 
@@ -215,10 +212,8 @@ function(dfMissing_NoNA_SubjectSubset)
     # This replaces pivot_wider.  It is much more specific/less general, but appears to give the same result.
     # 
 
-    
     x = x[ x$subclass %in% x$subclass[duplicated(x$subclass)], ]
-    x = x[ order(x$subclass, x$emotion) , ]
-    return(x)
+    x[ order(x$subclass, x$emotion) , ]
 }
 
 
@@ -230,8 +225,11 @@ function(x)
     # x[i, c("meanAmpNC.B", "ACTOR.B", "presentNumber.B", "presentNumberWeight.B")] = x[i+1, c(6, 4, 5, 7)]
     # Omit ACTOR.B and presentNumberWeight.B as you don't use them.  Leave the ones for A as we would have to explicitly remove them.
     x[i, c("meanAmpNC.B", "presentNumber.B")] = x[i+1, c(6,  5)]
-    
-    names(x)[c(6, 4, 5, 7)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")    
+    names(x)[c(6, 4, 5, 7)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")
+
+    # Using cbind() instead of x[i, varNames ] doesn't help much.  Still subsetting [.data.frame
+#    x = cbind(x[i, ],  x[i+1, c(6,  5)]  )
+#    names(x)[c(6, 4, 5, 7, 10, 11)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A", "meanAmpNC.B", "presentNumber.B")        
     x[i, ]
 
 
