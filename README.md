@@ -78,6 +78,14 @@ unlockBinding("stopifnot", ns)
 assign("stopifnot", function (..., exprs, exprObject, local = TRUE) { list(...); if(!missing(exprs)) exprs; if(!missing(exprObject)) exprObject;  invisible()}, ns)
 ```
 
+```
+f = `[[.data.frame`
+body(f) = body(f)[-3]
+ns = getNamespace("base")
+unlockBinding("[[.data.frame", ns)
+assign("[[.data.frame", f, ns) 
+```
+
 + With .get.outside.method and stopifnot made degenerate, we get
 ```
                       self.time self.pct total.time total.pct
@@ -118,8 +126,23 @@ tm.orig/tm.new
 6.627625 4.354592 6.603736 
 
 rpIter = 1000
+
+    user   system  elapsed 
+6.432836 4.260328 6.413952 
 ```
 
+```
+tm.orig
+   user  system elapsed 
+308.521   1.589 311.630 
+```
+
++ With rbindlist rather than rbind, for rpIter = 250
+```
+tm.orig/tm.new
+    user   system  elapsed 
+7.539982 4.226064 7.498857 
+```
 
    
 ## Some Suggestions/Questions

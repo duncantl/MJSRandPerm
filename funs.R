@@ -121,7 +121,8 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
 {
   dfMissing_pairedWide = by(dfMissing_NoNA, dfMissing_NoNA$SUBJECTID, mkSubject)
 
-  dfMissing_pairedWide = do.call(rbind, c(dfMissing_pairedWide, deparse.level = 0, make.row.names = FALSE, factor.exclude = FALSE))
+    # data.table's rbindlist.  For 250 iterations of the loop, seems to save about 1 second overall.
+  dfMissing_pairedWide =  structure(rbindlist(dfMissing_pairedWide), class = "data.frame")  # do.call(rbind, c(dfMissing_pairedWide, deparse.level = 0, make.row.names = FALSE, factor.exclude = FALSE))
 
   dfMissing_pairedWide = mkWide(dfMissing_pairedWide)
     
