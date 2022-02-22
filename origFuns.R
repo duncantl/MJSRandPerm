@@ -148,6 +148,10 @@ pairTrials_RandomPerm <- function(dfMissing) {
   # Calculate average presentation number for each trial pair
   dfMissing_pairedWide$presentNumberAvg <- (dfMissing_pairedWide$presentNumber.A+dfMissing_pairedWide$presentNumber.B)/2
 
+
+# To test when only computing data.frame and not model:
+#  return(dfMissing_pairedWide)
+  
   # Fit LME model
   fit.LMEMis <- lmer(meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID), data=dfMissing_pairedWide, REML = TRUE)
   

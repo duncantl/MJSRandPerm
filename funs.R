@@ -143,7 +143,7 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
   dfMissing_pairedWide[ c("SUBJECTID", "age")] =  lapply(dfMissing_pairedWide[ c("SUBJECTID", "age")], factor)
 
 #Just for testing making the data.frame but not fitting the model
-#  return(dfMissing_pairedWide)
+#return(dfMissing_pairedWide)
   
   # Fit LME model
     # Don't seem to be using
