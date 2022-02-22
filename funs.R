@@ -119,14 +119,13 @@ pairTrials_RandomPerm <-
     #
 function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))
 {
-    
-  uids = unique(dfMissing_NoNA$SUBJECTID)
-    # Initialize variable for storing paired data
-
   dfMissing_pairedWide = by(dfMissing_NoNA, dfMissing_NoNA$SUBJECTID, mkSubject)
-  
+
   dfMissing_pairedWide = do.call(rbind, dfMissing_pairedWide)
 
+  dfMissing_pairedWide = mkWide(dfMissing_pairedWide)
+#browser()
+    
   # Remove all rows with NA
   ### Already done by mkSubject()
   # dfMissing_pairedWide <- dfMissing_pairedWide[complete.cases(dfMissing_pairedWide), ] # Remove all NA rows (otherwise function will say that you've matched all pairs)
@@ -137,6 +136,13 @@ function(dfMissing, dfMissing_NoNA = dfMissing[complete.cases(dfMissing), ], for
   # Calculate average presentation number for each trial pair
   dfMissing_pairedWide$presentNumberAvg <- (dfMissing_pairedWide$presentNumber.A + dfMissing_pairedWide$presentNumber.B)/2
 
+return(dfMissing_pairedWide)#XXXX
+
+    # Since we kept SUBJECTID, age, emotion and ACTOR as character vectors to make rbind() etc. faster,
+    # we need to convert them to factor()s for fitting the model.
+    # Only SUBJECTID and age as ACTOR and emotion are not used in the model.
+  dfMissing_pairedWide[ c("SUBJECTID", "age")] =  lapply(dfMissing_pairedWide[ c("SUBJECTID", "age")], factor)
+    
   # Fit LME model
     # Don't seem to be using
     # c("ACTOR.A", "ACTOR.B", "presentNumberWeight.A", "presentNumberWeight.B", "ageWeight", "subclass")
@@ -178,23 +184,25 @@ function(dfMissing_NoNA_SubjectSubset)
     numB = length(emotionRows_A) - numA
     #emotionRows_B <- !emotionRows_B # dfMissing_NoNA_SubjectSubset$emotion == "B"
 
-    # If this subset does not have trials from both emotion conditions
-    if (any(c(numA, numB) == 0))   # !(all(c("meanAmpNC.B", "meanAmpNC.A") %in% colnames(dfMissing_pairedWide_SubjectSubset))))
+    # If this subset does not have trials from both emotion conditions, bail out.
+    if (any(c(numA, numB) == 0))  
       return(NULL)    
 
-        # We sample both conditions A and B randomly so we get a random selection of actor/presentation number for both conditions
+    # We sample both conditions A and B randomly so we get a random selection of actor/presentation number for both conditions
     # Otherwise, selecting 1:n may result in always pairing Actor 1/Trial 1 of Emotion A with a random trial from Emotion B
-
+# need to create this if using a tibble, not a data.frame    
+# dfMissing_NoNA_SubjectSubset$subclass = 1L
     dfMissing_NoNA_SubjectSubset$subclass[emotionRows_A] <- sample(numA)
     dfMissing_NoNA_SubjectSubset$subclass[!emotionRows_A] <- sample(numB)
 
     x = dfMissing_NoNA_SubjectSubset 
 
     # Assuming that
-    #  1) we don't want cases where there is only one record for given value of subclass
-    #      in pivot_wider() these give NA values for meanAmpNC.A or meanAmpNC.B  and so they are omitted
-    #      in the next step
-    #  2)  for the remaining rows, there will be exactly two rows  for each subclass.
+    #  1) we don't want cases where there is only one record for given value of subclass.
+    #      In pivot_wider() these give NA values for meanAmpNC.A or meanAmpNC.B  and so they are omitted
+    #      in the next step in the original code.
+    #  2)  for the remaining rows, there will be exactly two rows for each subclass.
+    # If either of these is not true, need to rethink.
     #
     # With these,
     #   a) remove the rows corresponding to a value of subclass that has only 1 value in the dataset.
@@ -206,11 +214,17 @@ function(dfMissing_NoNA_SubjectSubset)
     #
     # This replaces pivot_wider.  It is much more specific/less general, but appears to give the same result.
     # 
-    #  
-    #
+
     
     x = x[ x$subclass %in% x$subclass[duplicated(x$subclass)], ]
-    x = x[order(x$subclass, x$emotion),]
+    x = x[ order(x$subclass, x$emotion) , ]
+    return(x)
+}
+
+
+mkWide =
+function(x)
+{
     i = seq(1, nrow(x) - 1, by = 2)
 
     # x[i, c("meanAmpNC.B", "ACTOR.B", "presentNumber.B", "presentNumberWeight.B")] = x[i+1, c(6, 4, 5, 7)]
@@ -219,13 +233,20 @@ function(dfMissing_NoNA_SubjectSubset)
     
     names(x)[c(6, 4, 5, 7)] = c("meanAmpNC.A", "ACTOR.A", "presentNumber.A", "presentNumberWeight.A")    
     x[i, ]
+
+
     # If we want the same order as pivot_wider() returns, but not necessary.
-    #    return(x[i, c(1L, 2L, 8L, 9L, 4L, 10L, 5L, 11L, 6L, 12L, 7L, 13L) ])    
-
-    # Convert dataframe with paired trials from long to wide
-#    tmp = pivot_wider(dfMissing_NoNA_SubjectSubset, names_from = emotion, names_sep = ".", values_from = c(meanAmpNC, ACTOR, presentNumber, presentNumberWeight))
-
+    #    return(x[i, c(1L, 2L, 8L, 9L, 4L, 10L, 5L, 11L, 6L, 12L, 7L, 13L) ])        
 }
+
+        
+
+
+
+
+########################################
+if(FALSE) {
+# Unused.
 
 mkRecordWide =
 function(x)
@@ -236,14 +257,8 @@ function(x)
     ans
 }
 
-        
 
-
-
-xpivot_wider =
-function(d, ...)
-{
-    isa = d$emotion == 'A'
-   
 
 }
+
+
