@@ -14,8 +14,8 @@ We could probably get more speed
   + by using lmerControl()
     + to pass good starting values 
   + avoiding some unnecessary checks.
-  
-  
+
+
 # CAVEAT  
 
 To get a little more speed, we modify three functions in the search path
@@ -218,6 +218,12 @@ tm.orig
    user  system elapsed 
 308.521   1.589 311.630 
 ```
+311.630            250
+873.38 seconds for 500 iterations.
+1374.47           1000
+
+d = data.frame(tmOrig = c(311.63, 656.38, 1374.47), N = c(250, 500, 1000), tmNew = c(41.557 , 75.795, 172.752),
+                tmPair2 = c(36.189, 77.042, 182.349))
 
 + With rbindlist rather than rbind, for rpIter = 250
 ```
