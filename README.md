@@ -1,4 +1,47 @@
+Thanks to 
 ## Notes
+
+
+Compare with original
+```r
+library(plyr) 
+library(lme4) 
+library(lmerTest) 
+library(gsubfn) 
+library(data.table) 
+library(dplyr) 
+library(performance) 
+library(afex) 
+library(emmeans) 
+library(car) 
+library(stringr) 
+library(MatchIt) 
+library(tidyr) 
+
+
+dfMissing = readRDS("dfMissing.rds")
+e = new.env()
+
+source("origFuns.R", e)
+invisible(replicate(5, e$pairTrials_RandomPerm(dfMissing)))
+tm.orig = replicate(10, system.time(e$pairTrials_RandomPerm(dfMissing)))
+
+source("funs.R")
+invisible(replicate(5, pairTrials_RandomPerm(dfMissing, formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))))
+tm = replicate(10, system.time(pairTrials_RandomPerm(dfMissing, formula = meanAmpNC_BMinusA ~ age + presentNumberAvg + (1|SUBJECTID))))
+
+
+summary(tm.orig[3,])/summary(tm[3,])
+
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#  7.107   7.088   7.187   7.048   7.121   6.326 
+```
+
+
+```
+
+```
+
 
 
 ## mkSubject
@@ -131,9 +174,3 @@ dfMissing[ sapply(dfMissing, is.factor) ] = lapply(dfMissing[ sapply(dfMissing, 
 
 
 
-Compare with original
-```r
-e = new.env()
-source("origFuns.R", e)
-tm.orig = replicate(10, system.time(e$pairTrials_RandomPerm(dfMissing)))
-```
