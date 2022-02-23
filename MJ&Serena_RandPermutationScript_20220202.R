@@ -42,19 +42,21 @@
   #   for a dataset that has been randomly permuted 10,000 times 
 
 library(plyr) # V.1.8.6; ddply function
-library(lme4) # V.1.1-25; used for creating lme models
-library(lmerTest) # V.3.1-3; used for returning p-value for lme models
-library(gsubfn) # V.0.7; list function for assigning multiple outputs
 library(data.table) # V.1.13.2; fread function
 library(dplyr) # V.1.0.2; select function
-library(performance) # V.0.6.1; check_convergence function
 library(afex) # V.0.28-1; ANOVA analysis
-library(emmeans) # V.1.5.3; extract estimated marginal means
-library(car) # V.3.0-10; contr.sum function
-library(stringr) # V.1.4.0; str_sub function
-library(MatchIt) # V.4.1.0; used for pairing functions
-library(tidyr) # V.1.1.2; used for spread function
-library(ggplot2) # V.3.3.2; used for plotting
+
+# These are not needed
+#####library(lme4) # V.1.1-25; used for creating lme models
+#####library(lmerTest) # V.3.1-3; used for returning p-value for lme models
+#####library(gsubfn) # V.0.7; list function for assigning multiple outputs
+######library(performance) # V.0.6.1; check_convergence function
+######library(emmeans) # V.1.5.3; extract estimated marginal means
+######library(car) # V.3.0-10; contr.sum function
+######library(stringr) # V.1.4.0; str_sub function
+######library(MatchIt) # V.4.1.0; used for pairing functions
+######library(tidyr) # V.1.1.2; used for spread function
+######library(ggplot2) # V.3.3.2; used for plotting
 
 
 if(!exists("pairRecords2"))
