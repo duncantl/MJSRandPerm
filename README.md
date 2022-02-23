@@ -73,6 +73,9 @@ We need each of the following 4 files to run the code
    + Two functions that set and reset functions in packages in the search path to get a little more
      speed.
 
++ vec.R 
+   + two versions of a function to pair records - pairRecords1() and pairRecords2()
+     + pairRecords2() is vectorized in the entire data.frame
 
 ### Sample Data Set
 
@@ -82,14 +85,37 @@ We need each of the following 4 files to run the code
 ## Current Summary
 
 + We seem to have improved the creation of the data.frame for fitting each model by a factor of
-   between 16 and 17.
+   between 16 and 17. Probably more now when we use pairRecords2(). 
 
-+ When we combine this with fitting the model, the speedup is a factor of about 7.
++ When we combine this with fitting the model, the speedup is a factor of about 7-8.
    + The improvement from creating the data.frame gets diminished as the rest of the code takes a
      non-trivial amount of time.
 
 
 + Profiling the entire script
+```
+                       self.time self.pct total.time total.pct
+"[.data.frame"             32.92     4.76      55.90      8.09
+"data.frame"               30.44     4.41      69.08     10.00
+"validObject"              29.90     4.33      50.66      7.33
+"<Anonymous>"              27.88     4.04     281.56     40.75
+"genD.default"             25.44     3.68      54.74      7.92
+"apply"                    25.10     3.63      58.70      8.50
+"order"                    22.68     3.28      31.14      4.51
+".getClassesFromCache"     21.84     3.16      21.88      3.17
+".all.vars"                21.48     3.11      25.04      3.62
+"model.frame.default"      20.98     3.04      49.16      7.11
+".Call"                    19.90     2.88      22.80      3.30
+"subbars"                  15.28     2.21      17.32      2.51
+"$"                        14.24     2.06      52.94      7.66
+".nextMethod"              14.04     2.03      57.62      8.34
+"installClassMethod"       14.00     2.03      23.92      3.46
+```
+
+
+
+# Previous Profile Output
+
 ```
                        self.time self.pct total.time total.pct
 "ls"                       11.92    18.67      11.94     18.70
@@ -113,6 +139,7 @@ We need each of the following 4 files to run the code
 "installClassMethod"        0.60     0.94       0.88      1.38
 "getClassDef"               0.56     0.88       2.04      3.19
 ```
+
 + 2 iterations of the loop
 
 + collecting the call stacks for ls() just running loop.R, we have 289 calls to ls(), 9 unique call stacks .
@@ -482,6 +509,11 @@ head(summaryRprof("new.prof")$by.self, 10 )
 ```   
 dfMissing[ sapply(dfMissing, is.factor) ] = lapply(dfMissing[ sapply(dfMissing, is.factor) ], as.character)
 ```
+
+
+
+
+
 
 
 
