@@ -77,9 +77,35 @@ We need each of the following 4 files to run the code
    + two versions of a function to pair records - pairRecords1() and pairRecords2()
      + pairRecords2() is vectorized in the entire data.frame
 
+
 ### Sample Data Set
 
 + Sample0751-NCMeanAmpOutput.csv
+
+
+### Questions and Notes
+
++ Questions.md 
+  + High-level questions about objective and task
++ MetaExplore.md 
+  + initial exploration of the code, some programmatically with meta-programming.
+
+### Mechanism and data to identify C routines identified in profiler as .External2
+
+These mostly come from the tidyverse code used in the original script 
+and found when profiling the code.
+They appear in the profling output as .External2 and it does not identify which
+routine. So we traced these via the native debugger lldb and a Python script that
+is called each time we hit the 
+
++ ExternalCalls.json
+  + the actual calls and number of times they were called.
++ external.py
+  + the python code that is called each time the do_External  C routine is called.
++ ext.c
+  + a sample routine called via .External2
+
+---
 
 
 ## Current Summary

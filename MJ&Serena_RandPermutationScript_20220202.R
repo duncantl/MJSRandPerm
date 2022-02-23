@@ -57,6 +57,12 @@ library(tidyr) # V.1.1.2; used for spread function
 library(ggplot2) # V.3.3.2; used for plotting
 
 
+if(!exists("pairRecords2"))
+    source("vec.R")
+
+if(!exists("pairTrials_RandomPerm"))
+    source("funs.R")
+
 # source("funs.R")
 
 
@@ -151,6 +157,7 @@ dfMissing <- induceMissingTrials(dfOriginal, caseDeletionPct) [[1]]
 
 # In our full script, we call pairTrials_RandomPerm 120,000,000 times 
 # (=10,000 permutations per dataset * 1,000 datasets * 4 types of induced missing trials for each dataset * 3 patterns of missing data)
+
 
 
 source("loop.R")
