@@ -2,10 +2,9 @@ setNSFunctions =
 function(funs = c(".get.outside.method", "stopifnot")) #, "[[.data.frame"))
 {
     oldFuns = list()
-
+    
     if(".get.outside.method" %in% funs) {
         ns = getNamespace("emmeans")
-
         oldFuns$.get.outside.method = list(ns = ns, fun = get(".get.outside.method", ns))
         unlockBinding(".get.outside.method", ns)
         assign(".get.outside.method", function(generic, cls) NULL, ns)
